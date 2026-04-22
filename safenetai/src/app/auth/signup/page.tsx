@@ -20,11 +20,12 @@ export default function SignupPage() {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#09090B] px-4">
-      <Card className="w-full max-w-md">
+    <main className="relative flex min-h-screen items-center justify-center px-4 py-16">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.12] [background:radial-gradient(900px_circle_at_20%_20%,rgba(45,212,191,0.35),transparent_55%),radial-gradient(900px_circle_at_80%_10%,rgba(167,139,250,0.28),transparent_55%),radial-gradient(900px_circle_at_50%_90%,rgba(251,191,36,0.18),transparent_55%)]" />
+      <Card className="glass-panel relative w-full max-w-md">
         <CardHeader>
-          <CardTitle>Create SafeNet AI Account</CardTitle>
-          <CardDescription>Secure your scans and reports with authentication</CardDescription>
+          <CardTitle className="font-heading text-xl tracking-tight">Create account</CardTitle>
+          <CardDescription>Join SafeNet AI to track scans and report scams.</CardDescription>
         </CardHeader>
         <CardContent>
           <form
@@ -80,15 +81,18 @@ export default function SignupPage() {
               minLength={6}
               required
             />
-            {error && <p className="text-sm text-[#EC4899]">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
             <Button
-              className="w-full bg-[#10B981] text-[#09090B] hover:bg-[#10B981]/80 shadow-lg shadow-emerald-500/20"
+              className="w-full"
               disabled={register.isPending}
             >
               {register.isPending ? "Creating account..." : "Create account"}
             </Button>
-            <p className="text-sm text-[#CBD5E1]">
-              Already have an account? <Link href="/auth/login" className="text-[#7C3AED] hover:text-[#7C3AED]/80">Sign in</Link>
+            <p className="text-sm text-muted-foreground">
+              Already have an account?{" "}
+              <Link href="/auth/login" className="text-primary hover:underline">
+                Sign in
+              </Link>
             </p>
           </form>
         </CardContent>

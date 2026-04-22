@@ -8,6 +8,14 @@ const extensionReportSchema = z.object({
   messageText: z.string().min(6),
   pageUrl: z.string().url().optional(),
   createdAt: z.string().datetime().optional(),
+  proofFile: z
+    .object({
+      fileName: z.string().min(1),
+      mimeType: z.string().min(1),
+      base64Data: z.string().min(1),
+      sizeBytes: z.number().int().min(1).max(8 * 1024 * 1024),
+    })
+    .optional(),
   analysis: z
     .object({
       isScam: z.boolean().optional(),
@@ -19,7 +27,8 @@ const extensionReportSchema = z.object({
 });
 
 function findFirstUrl(text: string): string | null {
-  const match = text.match(/https?:\/\/[^\s]+/i);
+  const re = /https?:\/\/[^\s]+/gi;
+  const match = re.exec(text);
   return match?.[0] ?? null;
 }
 
@@ -74,8 +83,19 @@ export async function POST(request: Request) {
           analysis: input.analysis ? { ...input.analysis, riskScore } : null,
           pageUrl: input.pageUrl ?? null,
           createdAt: input.createdAt ?? null,
+          hasProofFile: Boolean(input.proofFile),
         },
         approvedAt: new Date(),
+        uploads: input.proofFile
+          ? {
+              create: {
+                fileName: input.proofFile.fileName,
+                mimeType: input.proofFile.mimeType,
+                sizeBytes: input.proofFile.sizeBytes,
+                base64Data: input.proofFile.base64Data,
+              },
+            }
+          : undefined,
       },
       select: {
         id: true,

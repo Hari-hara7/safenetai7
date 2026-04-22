@@ -503,6 +503,7 @@ async function sendReportToSafeNetBackend(reportPayload) {
         analysis: reportPayload.analysis,
         pageUrl: reportPayload.pageUrl,
         createdAt: reportPayload.createdAt,
+        proofFile: reportPayload.proofFile || undefined,
       }),
     });
 
@@ -518,6 +519,49 @@ async function sendReportToSafeNetBackend(reportPayload) {
   } catch (error) {
     console.error('SafeNet backend sync error:', error);
     return { success: false, error: error?.message || 'network_error' };
+  }
+}
+
+function dataUrlToProofFilePayload(dataUrl, fileName = 'gmail-screenshot.png') {
+  if (!dataUrl || typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
+    return null;
+  }
+
+  const commaIndex = dataUrl.indexOf(',');
+  if (commaIndex === -1) {
+    return null;
+  }
+
+  const meta = dataUrl.slice(0, commaIndex);
+  const base64Data = dataUrl.slice(commaIndex + 1);
+  const mimeMatch = /data:([^;]+);base64/i.exec(meta);
+  const mimeType = mimeMatch?.[1] || 'image/png';
+
+  // Approximate base64 decoded size in bytes
+  const sizeBytes = Math.floor((base64Data.length * 3) / 4);
+  if (sizeBytes <= 0) {
+    return null;
+  }
+
+  return {
+    fileName,
+    mimeType,
+    sizeBytes,
+    base64Data,
+  };
+}
+
+async function captureScreenshotProof(senderTab) {
+  if (!senderTab || typeof senderTab.windowId !== 'number') {
+    return null;
+  }
+
+  try {
+    const dataUrl = await chrome.tabs.captureVisibleTab(senderTab.windowId, { format: 'png' });
+    return dataUrlToProofFilePayload(dataUrl);
+  } catch (error) {
+    console.warn('Screenshot capture failed:', error);
+    return null;
   }
 }
 
@@ -717,25 +761,33 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'reportScamMessage') {
-    const reportPayload = {
-      platform: request.platform || 'unknown',
-      messageText: request.messageText || '',
-      analysis: request.analysis || null,
-      pageUrl: request.pageUrl || '',
-      createdAt: request.createdAt || new Date().toISOString(),
-      sourceTabId: sender?.tab?.id ?? null,
-    };
+    (async () => {
+      const screenshotProof = request.includeScreenshot
+        ? await captureScreenshotProof(sender?.tab)
+        : null;
 
-    Promise.all([
-      storeScamReport(reportPayload),
-      sendReportToSafeNetBackend(reportPayload),
-    ]).then(([localResult, backendResult]) => {
+      const reportPayload = {
+        platform: request.platform || 'unknown',
+        messageText: request.messageText || '',
+        analysis: request.analysis || null,
+        pageUrl: request.pageUrl || '',
+        createdAt: request.createdAt || new Date().toISOString(),
+        sourceTabId: sender?.tab?.id ?? null,
+        proofFile: screenshotProof || undefined,
+      };
+
+      const [localResult, backendResult] = await Promise.all([
+        storeScamReport(reportPayload),
+        sendReportToSafeNetBackend(reportPayload),
+      ]);
+
       sendResponse({
         success: localResult.success || backendResult.success,
         local: localResult,
         backend: backendResult,
+        screenshotAttached: Boolean(screenshotProof),
       });
-    });
+    })();
     return true;
   }
 });

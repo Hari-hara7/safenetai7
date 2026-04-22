@@ -44,3 +44,20 @@ yarn-error.log*
 
 # idea files
 .idea
+
+# python caches / artifacts (mlmodel)
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# ML model artifacts (do not commit binaries)
+*.pkl
+*.joblib
+*.onnx
+
+# prisma generated client (generated on install)
+/generated/prisma/
+
+# extension build artifacts
+/extension-build/next_assets/

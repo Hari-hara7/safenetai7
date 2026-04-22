@@ -4,6 +4,7 @@ import { z } from "zod";
 import { env } from "~/env";
 import { extractKeywords, mapRiskStatus } from "~/lib/security";
 import { createTRPCRouter, protectedProcedure, publicProcedure } from "~/server/api/trpc";
+import { Prisma } from "../../../../generated/prisma";
 
 const base64FileSchema = z.object({
   fileName: z.string().min(1),
@@ -32,11 +33,54 @@ function toRiskScoreByPrediction(prediction: string, confidence: number): number
 
 async function safeJson(res: Response) {
   try {
-    return await res.json();
+    return (await res.json()) as unknown;
   } catch {
     return null;
   }
 }
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isJsonValue(value: unknown): value is Prisma.InputJsonValue {
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return true;
+  }
+
+  if (Array.isArray(value)) {
+    return value.every(isJsonValue);
+  }
+
+  if (typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).every(isJsonValue);
+  }
+
+  return false;
+}
+
+function toJsonValue(value: unknown): Prisma.InputJsonValue | Prisma.JsonNullValueInput {
+  return isJsonValue(value) ? value : Prisma.JsonNull;
+}
+
+const scanBackendSchema = z.object({
+  prediction: z.string().optional(),
+  confidence: z.union([z.number(), z.string()]).optional(),
+});
+
+const docBackendSchema = z.object({
+  prediction: z.string().optional(),
+  confidence: z.union([z.number(), z.string()]).optional(),
+  risk_score: z.union([z.number(), z.string()]).optional(),
+  warnings: z.array(z.unknown()).optional(),
+  verdict: z.string().optional(),
+  indicators: z.unknown().optional(),
+});
 
 export const scanRouter = createTRPCRouter({
   scanLink: publicProcedure
@@ -48,16 +92,19 @@ export const scanRouter = createTRPCRouter({
         body: JSON.stringify({ url: input.url }),
       });
 
-      const payload = await safeJson(response);
-      if (!response.ok || !payload) {
+      const payloadRaw = await safeJson(response);
+      const payloadParsed = scanBackendSchema.safeParse(payloadRaw);
+      if (!response.ok || !payloadParsed.success) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Link scanner backend is unavailable.",
         });
       }
 
+      const payload = payloadParsed.data;
       const confidence = Number(payload.confidence ?? 0);
-      const riskScore = toRiskScoreByPrediction(String(payload.prediction ?? ""), confidence);
+      const prediction = payload.prediction ?? "";
+      const riskScore = toRiskScoreByPrediction(prediction, confidence);
       const status = mapRiskStatus(riskScore);
       const keywords = extractKeywords(input.url);
 
@@ -71,15 +118,15 @@ export const scanRouter = createTRPCRouter({
             confidence,
             riskScore,
             keywords,
-            explanation: `Prediction: ${payload.prediction}`,
-            rawResponse: payload,
+            explanation: `Prediction: ${prediction}`,
+            rawResponse: toJsonValue(payloadRaw),
             userId,
           },
         });
       }
 
       return {
-        prediction: payload.prediction as string,
+        prediction,
         confidence,
         riskScore,
         status,
@@ -93,17 +140,23 @@ export const scanRouter = createTRPCRouter({
       const domain = parseDomain(input.domain);
       const url = `https://api.ip2whois.com/v2?key=${env.IP2WHOIS_API_KEY}&domain=${domain}`;
       const response = await fetch(url);
-      const payload = await safeJson(response);
+      const payloadRaw = await safeJson(response);
 
-      if (!response.ok || !payload) {
+      if (!response.ok || !isRecord(payloadRaw)) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Domain age API is unavailable.",
         });
       }
 
-      const createDateRaw =
-        String(payload.create_date ?? payload.creation_date ?? payload.created ?? "").trim();
+      const payload = payloadRaw;
+      const create_date = payload.create_date;
+      const creation_date = payload.creation_date;
+      const created = payload.created;
+      const createDateCandidate = [create_date, creation_date, created].find(
+        (value) => typeof value === "string" || typeof value === "number",
+      );
+      const createDateRaw = String(createDateCandidate ?? "").trim();
       const createdAt = createDateRaw ? new Date(createDateRaw) : null;
       const now = Date.now();
       const ageYears =
@@ -135,7 +188,7 @@ export const scanRouter = createTRPCRouter({
             explanation: ageYears
               ? `Domain age is ${ageYears.toFixed(2)} years.`
               : "Could not determine domain age.",
-            rawResponse: payload,
+            rawResponse: toJsonValue(payloadRaw),
             userId,
           },
         });
@@ -147,7 +200,7 @@ export const scanRouter = createTRPCRouter({
         ageYears,
         riskScore,
         status,
-        raw: payload,
+        raw: payloadRaw,
       };
     }),
 
@@ -170,16 +223,19 @@ export const scanRouter = createTRPCRouter({
         }),
       });
 
-      const payload = await safeJson(response);
-      if (!response.ok || !payload) {
+      const payloadRaw = await safeJson(response);
+      const payloadParsed = scanBackendSchema.safeParse(payloadRaw);
+      if (!response.ok || !payloadParsed.success) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Email scanner backend is unavailable.",
         });
       }
 
+      const payload = payloadParsed.data;
       const confidence = Number(payload.confidence ?? 0);
-      const riskScore = toRiskScoreByPrediction(String(payload.prediction ?? ""), confidence);
+      const prediction = payload.prediction ?? "";
+      const riskScore = toRiskScoreByPrediction(prediction, confidence);
       const status = mapRiskStatus(riskScore);
       const keywords = extractKeywords(input.emailText);
 
@@ -202,14 +258,14 @@ export const scanRouter = createTRPCRouter({
             riskScore,
             keywords,
             explanation,
-            rawResponse: payload,
+            rawResponse: toJsonValue(payloadRaw),
             userId,
           },
         });
       }
 
       return {
-        prediction: payload.prediction as string,
+        prediction,
         confidence,
         riskScore,
         status,
@@ -239,18 +295,23 @@ export const scanRouter = createTRPCRouter({
         body: formData,
       });
 
-      const payload = await safeJson(response);
-      if (!response.ok || !payload) {
+      const payloadRaw = await safeJson(response);
+      const payloadParsed = docBackendSchema.safeParse(payloadRaw);
+      if (!response.ok || !payloadParsed.success) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "Document scanner backend is unavailable.",
         });
       }
 
+      const payload = payloadParsed.data;
       const riskScore = Number(payload.risk_score ?? 0);
       const status = mapRiskStatus(riskScore);
       const confidence = Number(payload.confidence ?? 0);
-      const warnings = Array.isArray(payload.warnings) ? payload.warnings : [];
+      const warnings = (payload.warnings ?? []).map((w) => String(w));
+      const prediction = payload.prediction ?? "";
+      const verdict = payload.verdict ?? "No explanation available.";
+      const indicators = payload.indicators ?? {};
 
       const userId = ctx.session?.user?.id;
       if (userId) {
@@ -262,21 +323,21 @@ export const scanRouter = createTRPCRouter({
             confidence,
             riskScore,
             keywords: warnings,
-            explanation: String(payload.verdict ?? "No explanation available."),
-            rawResponse: payload,
+            explanation: verdict,
+            rawResponse: toJsonValue(payloadRaw),
             userId,
           },
         });
       }
 
       return {
-        prediction: payload.prediction as string,
+        prediction,
         confidence,
         riskScore,
         status,
         warnings,
-        verdict: payload.verdict as string,
-        indicators: payload.indicators ?? {},
+        verdict,
+        indicators,
       };
     }),
 

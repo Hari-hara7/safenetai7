@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "SafeNet AI — Report & Scan",
+  "version": "0.1.0",
+  "description": "Quickly scan or report suspicious pages/messages to SafeNet AI.",
+  "permissions": ["storage", "activeTab", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_title": "SafeNet AI",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html"
+}
+

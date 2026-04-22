@@ -144,13 +144,31 @@ export const adminRouter = createTRPCRouter({
         },
       );
 
-      const payload = await response.json();
-      const reply =
-        payload?.candidates?.[0]?.content?.parts
-          ?.map((part: { text?: string }) => part.text ?? "")
-          .join("\n")
-          .trim() ||
-        "Support is currently busy. Please retry in a moment.";
+      const payload: unknown = await response.json();
+
+      const geminiSchema = z.object({
+        candidates: z
+          .array(
+            z.object({
+              content: z
+                .object({
+                  parts: z.array(z.object({ text: z.string().optional() })).optional(),
+                })
+                .optional(),
+            }),
+          )
+          .optional(),
+      });
+
+      const parsed = geminiSchema.safeParse(payload);
+      const replyText =
+        parsed.success
+          ? (parsed.data.candidates?.[0]?.content?.parts ?? [])
+              .map((part) => part.text ?? "")
+              .join("\n")
+              .trim()
+          : "";
+      const reply = replyText.length > 0 ? replyText : "Support is currently busy. Please retry in a moment.";
 
       return { reply };
     }),

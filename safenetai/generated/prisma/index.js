@@ -221,7 +221,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\Users\\harih\\New folder (4)\\safenetai\\safenetai\\generated\\prisma",
+      "value": "C:\\Users\\harih\\New folder (7)\\safenetai7\\safenetai\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -235,7 +235,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\Users\\harih\\New folder (4)\\safenetai\\safenetai\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\Users\\harih\\New folder (7)\\safenetai7\\safenetai\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
@@ -249,6 +249,7 @@ const config = {
     "db"
   ],
   "activeProvider": "postgresql",
+  "postinstall": false,
   "inlineDatasources": {
     "db": {
       "url": {

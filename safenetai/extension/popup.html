@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SafeNet AI</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="header">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="m9 12 2 2 4-4"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div>
+            <div class="title">SafeNet AI</div>
+            <div class="subtitle">Trust & scam defense</div>
+          </div>
+        </div>
+        <a class="link" id="open-options" href="#" title="Options">Options</a>
+      </header>
+
+      <section class="panel">
+        <div class="row">
+          <div class="label">Current tab</div>
+          <div class="value" id="tab-url" title=""></div>
+        </div>
+        <div class="row">
+          <div class="label">API base URL</div>
+          <div class="value mono" id="api-base"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <label class="field">
+          <div class="field-label">Message / evidence</div>
+          <textarea
+            id="message"
+            rows="5"
+            placeholder="Paste suspicious message text (WhatsApp/Email/DM), or describe what happened…"
+          ></textarea>
+        </label>
+
+        <div class="grid">
+          <button class="btn primary" id="report">
+            <span>Report to community feed</span>
+          </button>
+          <button class="btn" id="scan-open-dashboard">
+            <span>Open dashboard</span>
+          </button>
+        </div>
+
+        <div class="hint">
+          Tip: include URLs in the message—SafeNet AI will capture the first URL automatically.
+        </div>
+      </section>
+
+      <section class="toast" id="toast" aria-live="polite" aria-atomic="true"></section>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
+

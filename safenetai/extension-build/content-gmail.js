@@ -545,6 +545,30 @@ function showPhishingWarning(analysis, senderEmail) {
         line-height: 1.65;
       }
       #phishguard-warning .pg-footer strong { color: #fcd34d; }
+      #phishguard-warning .pg-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+      #phishguard-warning .pg-btn {
+        border: 0;
+        border-radius: 8px;
+        padding: 7px 12px;
+        font-size: 11.5px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      #phishguard-warning .pg-btn.report {
+        background: rgba(239,68,68,0.25);
+        color: #fecaca;
+        border: 1px solid rgba(239,68,68,0.55);
+      }
+      #phishguard-warning .pg-btn.open {
+        background: rgba(45,212,191,0.2);
+        color: #99f6e4;
+        border: 1px solid rgba(45,212,191,0.45);
+      }
     </style>
 
     <div class="pg-header">
@@ -574,6 +598,11 @@ function showPhishingWarning(analysis, senderEmail) {
         <div class="pg-kw-label">Suspicious keywords detected</div>
         ${topKeywords.map(k => `<span class="pg-kw">${k}</span>`).join('')}
       </div>` : ''}
+
+      <div class="pg-actions">
+        <button id="phishguard-report-btn" class="pg-btn report">Report to SafeNet</button>
+        <button id="phishguard-open-dashboard-btn" class="pg-btn open">Open Dashboard</button>
+      </div>
 
       <div class="pg-footer">
         <strong>⚠️ Stay Safe:</strong> Legitimate internships <strong>never charge fees</strong>.
@@ -612,6 +641,43 @@ function showPhishingWarning(analysis, senderEmail) {
 
   const dismissBtn = document.getElementById('phishguard-dismiss-btn');
   if (dismissBtn) dismissBtn.addEventListener('click', removeWarningBanner);
+  const reportBtn = document.getElementById('phishguard-report-btn');
+  if (reportBtn) {
+    reportBtn.addEventListener('click', () => {
+      const emailData = extractEmailData();
+      const reportText = [
+        `Sender: ${senderEmail || emailData.sender || "unknown"}`,
+        `Subject: ${emailData.subject || "unknown"}`,
+        "",
+        (emailData.body || "").slice(0, 5000),
+      ].join("\n");
+      chrome.runtime.sendMessage({
+        action: "reportScamMessage",
+        platform: "gmail",
+        messageText: reportText,
+        includeScreenshot: true,
+        analysis: {
+          isScam: true,
+          riskScore: analysis.riskScore,
+          scamType,
+          explanation: analysis.reasons.join(" | ").slice(0, 800),
+        },
+        pageUrl: window.location.href,
+        createdAt: new Date().toISOString(),
+      }, (response) => {
+        const ok = Boolean(response?.success);
+        reportBtn.textContent = ok ? "Reported with Screenshot" : "Report Sent";
+        reportBtn.disabled = true;
+        reportBtn.style.opacity = "0.75";
+      });
+    });
+  }
+  const openDashBtn = document.getElementById('phishguard-open-dashboard-btn');
+  if (openDashBtn) {
+    openDashBtn.addEventListener('click', () => {
+      window.open('http://localhost:3000/dashboard', '_blank');
+    });
+  }
 
   console.log('🛡️ PhishGuard: Phishing email detected!', analysis);
 }

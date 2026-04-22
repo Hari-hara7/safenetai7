@@ -20,11 +20,12 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#09090B] px-4">
-      <Card className="w-full max-w-md">
+    <main className="relative flex min-h-screen items-center justify-center px-4 py-16">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.12] [background:radial-gradient(900px_circle_at_20%_20%,rgba(45,212,191,0.35),transparent_55%),radial-gradient(900px_circle_at_80%_10%,rgba(167,139,250,0.28),transparent_55%),radial-gradient(900px_circle_at_50%_90%,rgba(251,191,36,0.18),transparent_55%)]" />
+      <Card className="glass-panel relative w-full max-w-md">
         <CardHeader>
-          <CardTitle>Sign in to SafeNet AI</CardTitle>
-          <CardDescription>Access your protected dashboard and scan history</CardDescription>
+          <CardTitle className="font-heading text-xl tracking-tight">Sign in</CardTitle>
+          <CardDescription>Access your dashboard, scans, and community reports.</CardDescription>
         </CardHeader>
         <CardContent>
           <form
@@ -66,12 +67,15 @@ export default function LoginPage() {
               placeholder="Password"
               required
             />
-            {error && <p className="text-sm text-[#EC4899]">{error}</p>}
-            <Button className="w-full bg-[#7C3AED] text-white hover:bg-[#7C3AED]/80 shadow-lg shadow-purple-500/20" disabled={isLoading}>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+            <Button className="w-full" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
-            <p className="text-sm text-[#CBD5E1]">
-              New user? <Link href="/auth/signup" className="text-[#10B981] hover:text-[#10B981]/80">Create an account</Link>
+            <p className="text-sm text-muted-foreground">
+              New here?{" "}
+              <Link href="/auth/signup" className="text-primary hover:underline">
+                Create an account
+              </Link>
             </p>
           </form>
         </CardContent>

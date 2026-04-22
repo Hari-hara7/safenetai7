@@ -184,35 +184,45 @@ function injectWarningUI(messageNode, analysis, messageText) {
   const warning = document.createElement("div");
   warning.className = "phishguard-warning";
   warning.style.cssText = [
-    "margin-top: 6px",
+    "margin-top: 8px",
     "padding: 12px 14px",
-    "border-radius: 10px",
-    "background: #fff1f2",
-    "border: 1px solid #f87171",
-    "box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08)",
+    "border-radius: 12px",
+    "background: linear-gradient(135deg, #fff1f2, #ffe4e6)",
+    "border: 1px solid rgba(239, 68, 68, 0.45)",
+    "box-shadow: 0 10px 24px rgba(0, 0, 0, 0.10)",
     "color: #7f1d1d",
     "font-size: 12px",
     "line-height: 1.45",
     "font-family: Segoe UI, Arial, sans-serif",
   ].join(";");
 
+  const top = document.createElement("div");
+  top.style.cssText = "display:flex;align-items:center;justify-content:space-between;gap:8px;";
+
   const title = document.createElement("div");
-  title.textContent = "⚠ Scam Detected";
-  title.style.cssText = "font-weight: 800; color: #b91c1c; margin-bottom: 6px;";
+  title.textContent = "SafeNet Alert";
+  title.style.cssText = "font-weight: 800; color: #b91c1c;";
+
+  const score = document.createElement("span");
+  score.textContent = `Risk ${Math.round(Number(analysis.riskScore || 0))}%`;
+  score.style.cssText =
+    "font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);color:#991b1b;";
 
   const details = document.createElement("div");
-  details.textContent = `Risk Score: ${analysis.riskScore} | Scam Type: ${analysis.scamType}`;
-  details.style.cssText = "font-weight: 600; color: #991b1b;";
+  details.textContent = `Type: ${analysis.scamType}`;
+  details.style.cssText = "font-weight: 700; color: #991b1b; margin-top: 6px;";
 
   const reason = document.createElement("div");
   reason.textContent = analysis.explanation || "Suspicious scam pattern detected.";
   reason.style.cssText = "margin-top: 6px; color: #7f1d1d;";
 
+  const actions = document.createElement("div");
+  actions.style.cssText = "display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;";
+
   const reportBtn = document.createElement("button");
   reportBtn.type = "button";
-  reportBtn.textContent = "Report";
+  reportBtn.textContent = "Report Incident";
   reportBtn.style.cssText = [
-    "margin-top: 10px",
     "padding: 6px 12px",
     "border: 1px solid #dc2626",
     "background: #dc2626",
@@ -223,6 +233,20 @@ function injectWarningUI(messageNode, analysis, messageText) {
     "font-weight: 600",
   ].join(";");
 
+  const dashboardBtn = document.createElement("button");
+  dashboardBtn.type = "button";
+  dashboardBtn.textContent = "Open Dashboard";
+  dashboardBtn.style.cssText = [
+    "padding: 6px 12px",
+    "border: 1px solid rgba(15, 118, 110, 0.4)",
+    "background: rgba(45, 212, 191, 0.18)",
+    "color: #0f766e",
+    "border-radius: 8px",
+    "cursor: pointer",
+    "font-size: 11px",
+    "font-weight: 700",
+  ].join(";");
+
   reportBtn.addEventListener("click", () => {
     handleReport(messageText, analysis);
     reportBtn.textContent = "Reported";
@@ -231,10 +255,18 @@ function injectWarningUI(messageNode, analysis, messageText) {
     reportBtn.style.cursor = "default";
   });
 
-  warning.appendChild(title);
+  dashboardBtn.addEventListener("click", () => {
+    window.open("http://localhost:3000/dashboard", "_blank");
+  });
+
+  top.appendChild(title);
+  top.appendChild(score);
+  warning.appendChild(top);
   warning.appendChild(details);
   warning.appendChild(reason);
-  warning.appendChild(reportBtn);
+  actions.appendChild(reportBtn);
+  actions.appendChild(dashboardBtn);
+  warning.appendChild(actions);
   bubble.appendChild(warning);
 }
 

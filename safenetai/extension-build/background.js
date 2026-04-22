@@ -557,8 +557,16 @@ async function captureScreenshotProof(senderTab) {
   }
 
   try {
-    const dataUrl = await chrome.tabs.captureVisibleTab(senderTab.windowId, { format: 'png' });
-    return dataUrlToProofFilePayload(dataUrl);
+    // Try PNG first for quality, then JPEG fallback if payload too large.
+    const pngDataUrl = await chrome.tabs.captureVisibleTab(senderTab.windowId, { format: 'png' });
+    const pngPayload = dataUrlToProofFilePayload(pngDataUrl);
+    if (pngPayload && pngPayload.sizeBytes <= 7.5 * 1024 * 1024) {
+      return pngPayload;
+    }
+
+    const jpegDataUrl = await chrome.tabs.captureVisibleTab(senderTab.windowId, { format: 'jpeg', quality: 65 });
+    const jpegPayload = dataUrlToProofFilePayload(jpegDataUrl, 'gmail-screenshot.jpg');
+    return jpegPayload;
   } catch (error) {
     console.warn('Screenshot capture failed:', error);
     return null;
@@ -781,11 +789,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendReportToSafeNetBackend(reportPayload),
       ]);
 
+      const backendSuccess = Boolean(backendResult?.success);
       sendResponse({
-        success: localResult.success || backendResult.success,
+        success: backendSuccess,
         local: localResult,
         backend: backendResult,
         screenshotAttached: Boolean(screenshotProof),
+        screenshotUploaded: backendSuccess && Boolean(screenshotProof),
       });
     })();
     return true;

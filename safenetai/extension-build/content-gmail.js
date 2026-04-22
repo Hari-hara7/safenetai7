@@ -665,10 +665,25 @@ function showPhishingWarning(analysis, senderEmail) {
         pageUrl: window.location.href,
         createdAt: new Date().toISOString(),
       }, (response) => {
-        const ok = Boolean(response?.success);
-        reportBtn.textContent = ok ? "Reported with Screenshot" : "Report Sent";
-        reportBtn.disabled = true;
-        reportBtn.style.opacity = "0.75";
+        const uploaded = Boolean(response?.screenshotUploaded);
+        const backendOk = Boolean(response?.success);
+        if (backendOk && uploaded) {
+          reportBtn.textContent = "Reported with Screenshot";
+          reportBtn.disabled = true;
+          reportBtn.style.opacity = "0.75";
+          return;
+        }
+
+        if (backendOk && !uploaded) {
+          reportBtn.textContent = "Reported (No Screenshot)";
+          reportBtn.disabled = true;
+          reportBtn.style.opacity = "0.75";
+          return;
+        }
+
+        reportBtn.textContent = "Report Failed - Retry";
+        reportBtn.disabled = false;
+        reportBtn.style.opacity = "1";
       });
     });
   }

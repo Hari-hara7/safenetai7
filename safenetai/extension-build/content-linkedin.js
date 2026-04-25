@@ -3,6 +3,8 @@
 const PHISHGUARD_PLATFORM = "linkedin";
 const analyzedCache = new Map();
 let periodicRescanId = null;
+const LINK_SCAN_THRESHOLD = 78;
+const TRUSTED_DOMAINS = ["google.com", "microsoft.com", "github.com", "nmamit.in", "nitte.edu.in"];
 
 function detectPlatform() {
   const host = window.location.hostname;
@@ -87,6 +89,99 @@ function resolveBubbleContainer(node) {
     node.closest(".msg-s-event-listitem") ||
     node.parentElement ||
     node
+  );
+}
+
+function normalizeCandidateUrl(rawUrl) {
+  if (!rawUrl) return null;
+  const href = String(rawUrl).trim();
+  if (!/^https?:\/\//i.test(href)) return null;
+
+  try {
+    const parsed = new URL(href);
+    const wrappedUrl = parsed.searchParams.get("url") || parsed.searchParams.get("u") || parsed.searchParams.get("target");
+    if (wrappedUrl && /^https?:\/\//i.test(wrappedUrl)) {
+      return decodeURIComponent(wrappedUrl);
+    }
+    return parsed.toString();
+  } catch (_error) {
+    return null;
+  }
+}
+
+function buildBlockedPageUrl(targetUrl, result) {
+  const riskScore = Number(result?.risk_score || 0);
+  const reasons = Array.isArray(result?.explanations) ? result.explanations.slice(0, 5) : [];
+  const params = new URLSearchParams({
+    url: targetUrl,
+    score: String(riskScore),
+    level: String(result?.risk_level || "HIGH"),
+    eventId: String(result?.event_id || ""),
+    reasons: JSON.stringify(reasons),
+  });
+  return chrome.runtime.getURL(`blocked.html?${params.toString()}`);
+}
+
+async function scanLinkWithMlModel(url) {
+  const response = await chrome.runtime.sendMessage({
+    action: "scanUrlIntel",
+    payload: {
+      url,
+      trusted_domains: TRUSTED_DOMAINS,
+    },
+  });
+  return response;
+}
+
+function shouldBlockScanResult(result) {
+  if (!result || !result.ok || !result.data) return false;
+  const riskScore = Number(result.data.risk_score || 0);
+  const recommendation = String(result.data.recommendation || "").toLowerCase();
+  return riskScore >= LINK_SCAN_THRESHOLD || recommendation === "block";
+}
+
+function installLinkedInLinkBlocker() {
+  document.addEventListener(
+    "click",
+    async (event) => {
+      const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!anchor) return;
+
+      const rawHref = anchor.getAttribute("href") || "";
+      const absoluteHref = anchor.href || rawHref;
+      const targetUrl = normalizeCandidateUrl(absoluteHref);
+      if (!targetUrl) return;
+
+      const targetDomain = (() => {
+        try {
+          return new URL(targetUrl).hostname.toLowerCase();
+        } catch {
+          return "";
+        }
+      })();
+
+      // Ignore LinkedIn internal navigation links.
+      if (targetDomain === "linkedin.com" || targetDomain === "www.linkedin.com" || targetDomain.endsWith(".linkedin.com")) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      try {
+        const result = await scanLinkWithMlModel(targetUrl);
+        if (shouldBlockScanResult(result)) {
+          const blockedPage = buildBlockedPageUrl(targetUrl, result.data);
+          window.location.assign(blockedPage);
+          return;
+        }
+      } catch (_error) {
+        // If ML scan fails, allow normal navigation to avoid dead click.
+      }
+
+      window.location.assign(targetUrl);
+    },
+    true
   );
 }
 
@@ -360,5 +455,6 @@ function observeMessages() {
     return;
   }
 
+  installLinkedInLinkBlocker();
   observeMessages();
 })();

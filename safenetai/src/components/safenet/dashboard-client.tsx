@@ -439,7 +439,7 @@ export function DashboardClient({ userName, userEmail, isAdmin }: DashboardClien
           >
             <Input className="glass-input" value={senderDomain} onChange={(e) => setSenderDomain(e.target.value)} placeholder="sender-domain.com (optional)" />
             <Textarea className="glass-input min-h-[100px]" value={emailText} onChange={(e) => setEmailText(e.target.value)} placeholder="Paste suspicious email content" />
-            <Button className="w-full bg-emerald/90 text-primary-foreground hover:bg-emerald shadow-[0_0_10px_rgba(0,255,157,0.2)]" onClick={() => emailScan.mutate({ emailText, senderDomain })} disabled={emailScan.isPending || emailText.length < 10}>
+            <Button className="w-full bg-emerald/90 text-primary-foreground hover:bg-emerald shadow-[0_0_10px_rgba(0,255,157,0.2)]" onClick={() => emailScan.mutate({ emailText, senderDomain: senderDomain || undefined })} disabled={emailScan.isPending || emailText.length < 10}>
               {emailScan.isPending ? "Analyzing..." : "Scan Email"}
             </Button>
             {emailScan.data && (

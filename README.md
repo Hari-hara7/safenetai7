@@ -278,7 +278,11 @@ This project is licensed under the **MIT License** — see the [LICENSE](./LICEN
 
 ---
 
-<div align="center">
+# Train AI models
+python train/train_email_model.py
+python train/train_link_model.py
+python train/train_doc_model.py
+python train/train_offer_model.py
 
 Built with 💙 by **Hariharanath** · Department of Computer Science & Engineering
 

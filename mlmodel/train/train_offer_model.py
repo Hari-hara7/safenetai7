@@ -176,8 +176,8 @@ def main():
     df = pd.concat([df1, df2, df3], ignore_index=True)
     df.dropna(inplace=True)
     df = df.drop_duplicates(subset=['message'])
-    print(f"Loaded {len(df)} messages")
-    print(f"Fake: {(df['label']==0).sum()}, Legit: {(df['label']==1).sum()}\n")
+    # print(f"Loaded {len(df)} messages")
+    # print(f"Fake: {(df['label']==0).sum()}, Legit: {(df['label']==1).sum()}\n")
 
     # Extract features
     print("Extracting features...")
@@ -193,7 +193,7 @@ def main():
 
     X = hstack([X_custom, X_tfidf])
     y = df['label']
-    print(f"Features: {X.shape[1]} (Custom: {len(feat_names)}, TF-IDF: {X_tfidf.shape[1]})\n")
+    # print(f"Features: {X.shape[1]} (Custom: {len(feat_names)}, TF-IDF: {X_tfidf.shape[1]})\n")
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
@@ -205,11 +205,12 @@ def main():
     print(classification_report(y_test, y_pred, target_names=['Fake', 'Legit']))
 
     cv = cross_val_score(model, X, y, cv=5, scoring='accuracy')
-    print(f"CV: {cv.mean():.4f} (+/- {cv.std():.4f})\n")
+    # print(f"CV: {cv.mean():.4f} (+/- {cv.std():.4f})\n")
 
     imp = np.abs(model.coef_[0][:len(feat_names)])
     for i in np.argsort(imp)[::-1][:10]:
-        print(f"  {feat_names[i]}: {imp[i]:.4f}")
+        # print(f"  {feat_names[i]}: {imp[i]:.4f}")
+        pass
 
     os.makedirs("app/models", exist_ok=True)
     joblib.dump(model, "app/models/offer_model.pkl")
@@ -219,9 +220,9 @@ def main():
     print("\nModel saved!\n")
 
     # Sanity check
-    print("=" * 60)
-    print("SANITY CHECK")
-    print("=" * 60)
+    # print("=" * 60)
+    # print("SANITY CHECK")
+    # print("=" * 60)
     tests = [
         ("Hi Rahul, Good news! You've been selected for the Software Development Internship at NexaByte Solutions. "
          "Details: Duration: 3 months, Stipend: Rs 15000/month, Start Date: 10 May 2026. Please confirm your acceptance "
@@ -244,9 +245,10 @@ def main():
         prob = model.predict_proba(Xcomb)[0]
         conf = prob[0] * 100 if pred == 0 else prob[1] * 100
         flags = get_red_flags(msg)
-        print(f"\n[{desc}] -> {'FAKE' if pred==0 else 'LEGIT'} ({conf:.1f}%)")
+        # print(f"\n[{desc}] -> {'FAKE' if pred==0 else 'LEGIT'} ({conf:.1f}%)")
         if flags:
-            print(f"  Red flags: {flags}")
+            # print(f"  Red flags: {flags}")
+            pass 
 
 
 if __name__ == "__main__":

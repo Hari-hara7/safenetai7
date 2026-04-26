@@ -5,7 +5,7 @@
   <img alt="PhishGuard" src="https://img.shields.io/badge/%F0%9F%9B%A1%EF%B8%8F_PhishGuard-6366f1?style=for-the-badge&labelColor=111827">
 </picture>
 
-# PhishGuard
+# Safenet AI
 
 **A multi-layered cybersecurity platform combining machine learning, real-time Gmail analysis, and community intelligence to detect phishing across URLs, emails, documents, and messaging platforms.**
 
